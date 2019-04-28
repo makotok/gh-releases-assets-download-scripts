@@ -1,0 +1,42 @@
+import org.kohsuke.github.*
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'org.kohsuke:github-api:1.95'
+    }    
+}
+
+plugins {
+    id "de.undercouch.download" version "3.4.3"
+}
+
+def downloadAsset(asset) {
+    println "Download asset : $asset.name"
+    download {
+        src asset.url
+        dest new File("$buildDir/$project.owner/$project.repoName/$project.tagName", "$asset.name")
+        username project.username
+        password project.password
+        header 'Accept', 'application/octet-stream'
+    }
+}
+
+task downloadAssets {
+    println '----------------------------------------'
+    println " Download  Github Releases Assets"
+    println " repository: $project.owner/$project.repoName"
+    println " tagName: $project.tagName"
+    println '----------------------------------------'
+
+    doLast {
+        def github = GitHub.connect(project.username, project.password);
+        def ghRepository = github.getRepository("$project.owner/$project.repoName")
+        def ghRelease = ghRepository.getReleaseByTagName(project.tagName)
+        ghRelease.assets.each { asset -> downloadAsset(asset) }
+    }
+}
+
+defaultTasks 'downloadAssets'
